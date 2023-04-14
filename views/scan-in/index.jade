@@ -1,66 +1,88 @@
 extends ../layout
 
 block pageContent
-	h1 #{title}
-	div.col-lg-6.col-sm-12
-		form(name="scanin",method="post")
-			table.table
-				tr
-					th Barcode:
-					td
-						input(type="text", placeholder="Item Barcode...", name="barcode", value=(item? item.item_data.barcode : '')) 
-				tr
-					th Scan In?
-					td 
-						input(type="checkbox", name="scan", id="scan", checked=(item && item.additional_info ? "checked" : undefined)) 
-				tr.scanfields
-					th Library:
-					td 
-						select(name="library")
-							each l in libraries.library
-								option(value=l.code, selected=l.code==(cookies.prefs ? cookies.prefs.library : '')) #{l.name}
-				tr.scanfields
-					th Circulation Desk:
-					td 
-						input(type="text", name="circ_desk", value=(cookies.prefs? cookies.prefs.circ_desk : ''))
-			button#btnSubmit(type="submit", class="btn btn-default") Scan In
-			p &nbsp;
-		if error
-			div.alert.alert-danger
-				<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
-				|#{error}
-		if item
-			div.panel.panel-default
-				div.panel-body
-					span(id="thumbnail")
-					div.lead 
-						p #{item.bib_data.title}
-						p By #{item.bib_data.author}
-					p Barcode: <strong>#{item.item_data.barcode}</strong>
-					if item.additional_info 
-						br
-						div.alert.alert-success
-							<span class="glyphicon glyphicon-check" aria-hidden="true"></span>
-							|Item scanned
-							p <strong>Scan info:</strong> #{item.additional_info}
+    h1 #{title}
+    div.col-lg-6.col-sm-12
+        form(name="scanin",method="post")
 
-	script.
-		$(document).ready(function(e) {
-			$(".scanfields").css('display', $("#scan").prop("checked") ? '' : 'none');
+            table.table
+                tr
+                    th Código de barras:
+                    td
+                        input(type="text", placeholder="Código de barras ...", name="barcode", value=(item? item.item_data.barcode : '')) 
+            button#btnSubmit(type="submit", class="btn btn-default") Buscar
+            p &nbsp;
+        if error
+            div.alert.alert-danger
+                span.glyphicon.glyphicon-exclamation-sign(aria-hidden="true")
+                |#{error}
+    - var currentDate = new Date();
 
-		    $("#scan").click(function() {
-		        $(".scanfields").css('display', this.checked ? '' : 'none');
-		    });
-		});
+    if item
+        div.panel.panel-default
+            div.panel-body
+                span(id="thumbnail")
+                div.lead 
+                    p Título: #{item.bib_data.title}
+                    p Autor: #{item.bib_data.author}
+                    p Código Socio: <strong>#{item.userId ?  item.userId : 'N/A'}</strong>
+                    p Nombre Socio: <strong>#{userData ? userData.full_name : 'N/A'}</strong>
+                    p Signatura: #{item.callNumber ? item.callNumber : 'N/A'}
+                    p Vence: #{due_date ? due_date : 'N/A'}
+                if item && userData && due_date && (new Date(due_date) < currentDate)
+                    .alert.alert-danger
+                        strong ¡Advertencia!
+                        | La fecha de vencimiento ha pasado.
 
-		function googleBooks(data) {
-			for (isbn in data) {
-				var b = data[isbn];
-				if (b && b.thumbnail_url)
-					$('#thumbnail').prepend('<img style="float:left; width:75px; height:auto; margin-right:20px" src="'+ b.thumbnail_url + '" />')
-			}
-		}
+        if item.additionalInfo
+            p Editorial: #{item.additionalInfo.publisher}
+            p Año de publicación: #{item.additionalInfo.publication_year}
 
-	if item && item.bib_data.isbn
-		- var isbn = item.bib_data.isbn.replace(/\D/g,'')
-		script(src="https://books.google.com/books?bibkeys=ISBN:#{isbn}&jscmd=viewapi&callback=googleBooks")
+        p Código de barras: <strong>#{item.item_data.barcode}</strong>
+        if item.additional_info 
+            br
+            div.alert.alert-success
+                span.glyphicon.glyphicon-check(aria-hidden="true")
+                |Item scanned
+                p <strong>Scan info:</strong> #{item.additional_info}
+
+script.
+    function googleBooks(data) {
+        for (var isbn in data) {
+            var b = data[isbn];
+            if (b && b.thumbnail_url) {
+                var imgElement = document.createElement('img');
+                imgElement.style.cssText = 'float:left; width:75px; height:auto; margin-right:20px';
+                imgElement.src = b.thumbnail_url;
+                document.getElementById('thumbnail').prepend(imgElement);
+                break;
+            }
+        }
+    }
+
+    function openLibrary(data) {
+        for (var isbn in data) {
+            var b = data[isbn];
+            if (b && b.cover && b.cover.medium) {
+                var imgElement = document.createElement('img');
+                imgElement.style.cssText = 'float:left; width:75px; height:auto; margin-right:20px';
+                imgElement.src = b.cover.medium;
+                document.getElementById('thumbnail').prepend(imgElement);
+                break;
+            }
+        }
+    }
+
+    function getBookCover(isbn) {
+        var scriptElementGoogleBooks = document.createElement('script');
+        scriptElementGoogleBooks.src = 'https://books.google.com/books?bibkeys=ISBN:' + isbn + '&jscmd=viewapi&callback=googleBooks';
+        document.body.appendChild(scriptElementGoogleBooks);
+
+        var scriptElementOpenLibrary = document.createElement('script');
+        scriptElementOpenLibrary.src = 'https://openlibrary.org/api/books?bibkeys=ISBN:' + isbn + '&format=json&jscmd=data&callback=openLibrary';
+        document.body.appendChild(scriptElementOpenLibrary);
+   
+    if item && item.bib_data.isbn
+       - var isbn = item.bib_data.isbn.replace(/\D/g,'')
+       script.
+           getBookCover("#{isbn}");

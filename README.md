@@ -1,4 +1,4 @@
-# Simple Node Example for Alma APIs
+# Ejemplo de nodo simple para las API de Alma
 
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 
