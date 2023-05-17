@@ -115,7 +115,8 @@ router.post('/', function (req, res, next) {
 				libraries: libraries,
 				userData: userData, // Asegúrate de incluir userData aquí
 				error: (req.body.scan && !item.additional_info ? "No se puede escanear el elemento" : undefined),
-				due_date: item.due_date // Asegúrate de incluir due_date aquí
+				due_date: item.due_date, // Asegúrate de incluir due_date aquí
+				currentDate: new Date() // Añade la fecha actual aquí
 
 			});
 	});
