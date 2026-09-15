@@ -231,8 +231,8 @@
       els.result.classList.add('alert');
     }
 
-    // Solo el verde se limpia solo: los demás veredictos requieren atención del personal
-    if (view.kind === 'ok') startAutoClear();
+    // Verde y ámbar se limpian solos (con Pausar/Continuar); rojo y gris quedan hasta la siguiente lectura
+    if (view.kind === 'ok' || view.kind === 'warn') startAutoClear();
     focusInput();
   }
 
