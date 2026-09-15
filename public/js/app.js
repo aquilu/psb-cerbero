@@ -83,6 +83,7 @@
     clearRemaining: 0,
     clearStartedAt: 0,
     paused: false,
+    showCovers: false,
     audio: null,
   };
 
@@ -269,7 +270,7 @@
     const seq = ++state.coverSeq;
     els.cover.hidden = true;
     els.cover.removeAttribute('src');
-    if (!isbn) return;
+    if (!isbn || !state.showCovers) return;
 
     // Sin portada, Open Library responde un GIF de 1×1 (se descarta por tamaño) en vez de un 404
     const sources = [
@@ -376,7 +377,8 @@
         el('span', 'h-dot'),
         el('span', 'h-title', (data.item && data.item.title) || data.barcode),
         el('time', 'h-time', formatTime(data.checkedAt)),
-        el('span', 'h-sub', [view.label, data.loan && data.loan.userId, data.barcode].filter(Boolean).join(' · ')),
+        // Sin datos del usuario: el historial queda a la vista en la zona de salida
+        el('span', 'h-sub', [view.label, data.barcode].filter(Boolean).join(' · ')),
       );
       button.addEventListener('click', () => {
         state.seq++;
@@ -464,6 +466,7 @@
         return;
       }
       els.pinDialog.close();
+      refreshStatus();
       const pending = state.pendingCode;
       state.pendingCode = null;
       if (pending) check(pending);
@@ -486,7 +489,8 @@
         signal: timeoutSignal(10000),
       });
       const data = await response.json();
-      els.version.textContent = `v${data.version}`;
+      els.version.textContent = data.version ? `v${data.version}` : '';
+      state.showCovers = Boolean(data.showCovers);
       if (els.conn.dataset.state !== 'degraded') setConn('online');
       if (data.accessRequired && !data.authorized) openPin();
     } catch {

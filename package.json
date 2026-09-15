@@ -11,7 +11,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node --test --test-reporter=spec \"test/**/*.test.js\""
+    "test": "node --test --test-reporter=spec \"test/**/*.test.js\"",
+    "audit:prod": "npm audit --omit=dev --audit-level=high"
   },
   "repository": {
     "type": "git",
@@ -28,5 +29,18 @@
   },
   "devDependencies": {
     "supertest": "^7.2.2"
-  }
+  },
+  "author": "Red de Bibliotecas del Banco de la República",
+  "homepage": "https://github.com/aquilu/psb-cerbero#readme",
+  "bugs": {
+    "url": "https://github.com/aquilu/psb-cerbero/issues"
+  },
+  "keywords": [
+    "yita",
+    "alma",
+    "ex-libris",
+    "bibliotecas",
+    "circulacion",
+    "banco-de-la-republica"
+  ]
 }

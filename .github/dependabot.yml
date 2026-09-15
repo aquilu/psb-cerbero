@@ -1,0 +1,26 @@
+# Actualizaciones automáticas de dependencias y de GitHub Actions.
+# Dependabot abre un Pull Request semanal; las pruebas y el análisis de seguridad corren en cada PR.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: America/Bogota
+    open-pull-requests-limit: 5
+    groups:
+      dependencias-menores:
+        update-types: [minor, patch]
+    labels: [dependencias]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: America/Bogota
+    groups:
+      github-actions:
+        patterns: ["*"]
+    labels: [dependencias, ci]
