@@ -1,4 +1,6 @@
-# Cerbero · Control de salida de material
+# Yita · Control de salida de material
+
+> Repositorio `psb-cerbero`. La aplicación se llamaba Cerbero y desde la v2.0.0 se llama **Yita**.
 
 Aplicación para las puertas de salida de la **Red de Bibliotecas del Banco de la República**. El personal escanea el código de barras de cada libro que sale y la pantalla dice, con color y sonido, si el material **puede salir**. La verificación se hace en tiempo real contra [Alma (Ex Libris)](https://developers.exlibrisgroup.com/alma/apis/).
 
@@ -7,19 +9,19 @@ Así se evita que alguien se lleve un libro que no está prestado o que está ca
 ## Cómo funciona en la puerta
 
 1. Se escanea el libro. El campo del lector mantiene el foco solo, así que no hace falta hacer clic.
-2. Cerbero consulta el ejemplar y **su préstamo activo** en Alma.
+2. Yita consulta el ejemplar y **su préstamo activo** en Alma.
 3. La pantalla muestra el veredicto:
 
 | Veredicto | Color | Qué hacer |
 |---|---|---|
 | **Puede salir** | Verde | Compare el nombre o la identificación con el documento de la persona. |
-| **Puede salir (préstamo vencido)** | Ámbar | Puede salir. Recuerde al usuario renovar o devolver. |
+| **Requiere autorización (préstamo vencido)** | Ámbar | No sale automáticamente. La salida debe autorizarla un representante de la biblioteca. |
 | **No puede salir: no prestado** | Rojo | El usuario debe pasar por el mostrador de préstamo. |
 | **No puede salir: en proceso** | Rojo | El ejemplar está en tránsito, en reserva u otro proceso. Verifique en circulación. |
 | **Código no encontrado / inválido** | Rojo | Vuelva a escanear o verifique el código. |
 | **Verificación manual** | Gris | Alma no respondió. Verifique el préstamo manualmente. |
 
-Los veredictos verdes y ámbar se limpian solos a los 12 segundos. Los rojos y grises se quedan en pantalla hasta la siguiente lectura o hasta presionar `Esc`. El panel lateral guarda las últimas 20 lecturas de la sesión, solo en la memoria del navegador.
+Los veredictos verdes se limpian solos a los 15 segundos. Con el botón **Pausar**, el resultado se queda en pantalla para revisar con calma los datos del libro. Los ámbar, rojos y grises se quedan en pantalla hasta la siguiente lectura o hasta presionar `Esc`. El panel lateral guarda las últimas 20 lecturas de la sesión, solo en la memoria del navegador.
 
 ## Requisitos
 
@@ -48,6 +50,7 @@ npm test               # pruebas automáticas (no consultan Alma)
 | `PORT` | No | Por defecto `3000`. Azure lo define automáticamente. |
 | `TZ` | No | Zona horaria para los vencimientos. Por defecto `America/Bogota`. |
 | `SHOW_FULL_USER_ID` | No | `true` (por defecto) muestra la identificación completa y `false` solo los últimos 4 dígitos. |
+| `OVERDUE_GRACE_DAYS` | No | Días de gracia para préstamos vencidos. Con `0` (por defecto), cualquier préstamo vencido requiere autorización. |
 | `ACCESS_PIN` | No | Si se define, la pantalla pide este PIN antes de consultar. Recomendado si la app es accesible desde internet. |
 | `COOKIE_SECRET` | Si hay `ACCESS_PIN` | Secreto largo y aleatorio para firmar la cookie de acceso. |
 | `WEBHOOK_SECRET` | No | Secreto para validar los webhooks de Alma. Si está vacío, `/webhooks` responde 503. |

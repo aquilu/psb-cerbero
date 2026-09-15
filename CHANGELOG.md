@@ -4,7 +4,7 @@ Todos los cambios relevantes de este proyecto. El formato se basa en [Keep a Cha
 
 ## [2.0.0] - 2026-09-15
 
-Reescritura completa de la aplicación: nueva interfaz para la puerta, backend moderno y corrección de errores que podían dar un veredicto equivocado.
+Reescritura completa de la aplicación, que pasa a llamarse **Yita** (antes Cerbero): nueva interfaz para la puerta, backend moderno y corrección de errores que podían dar un veredicto equivocado.
 
 ### Corregido
 - **Crítico:** con varias copias de un mismo título, la puerta podía mostrar el préstamo de **otra copia**. Por ejemplo, decía que un ejemplar que estaba en la estantería estaba prestado, o mostraba al usuario equivocado. La v1 consultaba `/bibs/{mms_id}/loans`, que devuelve los préstamos de todo el título, y tomaba el primero. Ahora se consulta el préstamo del ejemplar escaneado (`/bibs/{mms}/holdings/{holding}/items/{pid}/loans`) y se confirma que corresponda a ese ejemplar.
@@ -18,15 +18,17 @@ Reescritura completa de la aplicación: nueva interfaz para la puerta, backend m
 - En cada consulta se llamaba a `/conf/libraries` sin usar el resultado, y había código muerto de la función "scan".
 
 ### Agregado
-- Pantalla para la puerta: veredicto a pantalla completa con color, icono y sonido; foco permanente en el lector; limpieza automática; historial de las últimas 20 lecturas; indicador de conexión y diseño adaptable a tablet y celular.
-- Veredictos claros: *Puede salir*, *Puede salir (vencido)*, *No prestado*, *En proceso*, *No encontrado*, *Código inválido* y *Verificación manual*.
+- Pantalla para la puerta: veredicto a pantalla completa con color, icono y sonido; foco permanente en el lector; limpieza automática con botón **Pausar** para revisar los datos del libro con calma; historial de las últimas 20 lecturas; indicador de conexión y diseño adaptable a tablet y celular.
+- Veredictos claros: *Puede salir*, *Requiere autorización (préstamo vencido)*, *No prestado*, *En proceso*, *No encontrado*, *Código inválido* y *Verificación manual*.
+- **Préstamos vencidos:** ya no se autoriza la salida automáticamente. La pantalla indica cuántos días lleva vencido y que la salida debe autorizarla un representante de la biblioteca. `OVERDUE_GRACE_DAYS` permite configurar un margen de días (0 por defecto).
 - API JSON `GET /api/items/:barcode`, `GET /healthz` para Azure y acceso opcional por PIN (`ACCESS_PIN`).
 - Timeout y un reintento ante fallas de Alma. Si Alma no responde, la pantalla pide verificación manual en lugar de mostrar un error técnico.
 - Si la API key no tiene permiso de Usuarios, se muestra solo la identificación sin fallar.
 - Cabeceras de seguridad (helmet/CSP), límite de peticiones y compresión.
-- 38 pruebas automáticas (`npm test`) con Alma simulado, incluida la regresión de varias copias.
+- 39 pruebas automáticas (`npm test`) con Alma simulado, incluida la regresión de varias copias.
 
 ### Cambiado
+- La aplicación se llama **Yita** (antes Cerbero). El repositorio sigue siendo `psb-cerbero`.
 - Node.js 22+ y Express 5. Se eliminaron dependencias abandonadas o sin uso: `request`, `jade`, `async`, `nconf`, `moment`, `express-session`, `body-parser`, `serve-favicon`.
 - La configuración ahora vive en variables de entorno (`.env`) y `.env.example` documenta cada una.
 - El punto de entrada pasa de `bin/www` a `src/server.js`. `npm start` no cambia.

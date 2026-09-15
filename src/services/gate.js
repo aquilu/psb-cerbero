@@ -12,11 +12,12 @@ const VERDICTS = Object.freeze({
   ERROR_ALMA: 'ERROR_ALMA',
 });
 
-const ALLOWED = new Set([VERDICTS.PRESTADO, VERDICTS.PRESTADO_VENCIDO]);
+// Un préstamo vencido no autoriza la salida: la decide un representante de la biblioteca.
+const ALLOWED = new Set([VERDICTS.PRESTADO]);
 
 const MESSAGES = {
   [VERDICTS.PRESTADO]: 'Préstamo activo para este ejemplar.',
-  [VERDICTS.PRESTADO_VENCIDO]: 'El préstamo está vencido. Recuerde al usuario renovarlo o devolverlo.',
+  [VERDICTS.PRESTADO_VENCIDO]: 'Préstamo vencido. La salida debe autorizarla un representante de la biblioteca.',
   [VERDICTS.NO_PRESTADO]: 'Este ejemplar no está prestado. El usuario debe pasar por el mostrador de préstamo.',
   [VERDICTS.EN_PROCESO]: 'El ejemplar no está prestado. Verifique en el mostrador de préstamo.',
   [VERDICTS.NO_ENCONTRADO]: 'No existe ningún ejemplar con este código de barras.',
@@ -61,6 +62,10 @@ function cleanMarc(value) {
 function firstIsbn(value) {
   const match = String(value ?? '').replace(/-/g, '').match(/\b(97[89]\d{10}|\d{9}[\dXx])\b/);
   return match ? match[1].toUpperCase() : null;
+}
+
+function daysText(n) {
+  return `${n} ${n === 1 ? 'día' : 'días'}`;
 }
 
 function maskId(id) {
@@ -145,6 +150,7 @@ function createGateService({
   alma,
   timeZone = 'America/Bogota',
   showFullUserId = true,
+  overdueGraceDays = 0,
   now = () => new Date(),
   logger = console,
 }) {
@@ -216,8 +222,20 @@ function createGateService({
     if (loan) {
       const dueDate = describeDueDate(loan.due_date, checkedAt, timeZone);
       const user = await lookupUser(loan.user_id);
-      return buildResult(dueDate?.overdue ? VERDICTS.PRESTADO_VENCIDO : VERDICTS.PRESTADO, {
+      const overdue = Boolean(dueDate?.overdue);
+      const withinGrace = overdue && overdueGraceDays > 0 && dueDate.daysOverdue <= overdueGraceDays;
+      const verdict = overdue && !withinGrace ? VERDICTS.PRESTADO_VENCIDO : VERDICTS.PRESTADO;
+
+      let message;
+      if (verdict === VERDICTS.PRESTADO_VENCIDO && dueDate.daysOverdue > 0) {
+        message = `Préstamo vencido hace ${daysText(dueDate.daysOverdue)}. La salida debe autorizarla un representante de la biblioteca.`;
+      } else if (withinGrace) {
+        message = `Préstamo vencido hace ${daysText(dueDate.daysOverdue)}, dentro del margen de ${daysText(overdueGraceDays)}.`;
+      }
+
+      return buildResult(verdict, {
         ...found,
+        ...(message && { message }),
         loan: {
           userId: loan.user_id ? (showFullUserId ? String(loan.user_id) : maskId(loan.user_id)) : null,
           userIdMasked: !showFullUserId,

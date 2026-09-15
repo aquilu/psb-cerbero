@@ -1,7 +1,7 @@
 {
   "name": "psb-cerbero",
   "version": "2.0.0",
-  "description": "Control de salida de material en las puertas de la Red de Bibliotecas del Banco de la República (Alma API)",
+  "description": "Yita: control de salida de material en las puertas de la Red de Bibliotecas del Banco de la República (Alma API)",
   "private": true,
   "license": "MIT",
   "main": "src/server.js",

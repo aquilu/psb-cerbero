@@ -3,7 +3,7 @@
 const crypto = require('node:crypto');
 const rateLimit = require('express-rate-limit');
 
-const COOKIE_NAME = 'cerbero_acceso';
+const COOKIE_NAME = 'yita_acceso';
 const MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
 function safeEqual(a, b) {

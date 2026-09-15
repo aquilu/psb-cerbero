@@ -13,11 +13,16 @@ if (errors.length) {
 }
 
 const alma = createAlmaClient(config.alma);
-const gate = createGateService({ alma, timeZone: config.timeZone, showFullUserId: config.showFullUserId });
+const gate = createGateService({
+  alma,
+  timeZone: config.timeZone,
+  showFullUserId: config.showFullUserId,
+  overdueGraceDays: config.overdueGraceDays,
+});
 const app = createApp({ config, gate });
 
 const server = app.listen(config.port, () => {
-  console.log(`psb-cerbero v${config.version} escuchando en el puerto ${config.port} (Alma: ${config.alma.host})`);
+  console.log(`Yita (psb-cerbero) v${config.version} escuchando en el puerto ${config.port} (Alma: ${config.alma.host})`);
 });
 
 server.on('error', (err) => {
