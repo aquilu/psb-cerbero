@@ -1,22 +1,32 @@
 {
-  "name": "simple-node-alma-apis",
-  "version": "0.0.0",
+  "name": "psb-cerbero",
+  "version": "2.0.0",
+  "description": "Control de salida de material en las puertas de la Red de Bibliotecas del Banco de la República (Alma API)",
   "private": true,
+  "license": "MIT",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "start": "node ./bin/www"
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test --test-reporter=spec \"test/**/*.test.js\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aquilu/psb-cerbero.git"
   },
   "dependencies": {
-    "async": "~1.4.2",
-    "body-parser": "~1.13.2",
-    "cookie-parser": "~1.3.5",
-    "debug": "~2.2.0",
-    "express": "~4.13.1",
-    "express-session": "~1.12.0",
-    "jade": "~1.11.0",
-    "moment": "^2.29.4",
-    "morgan": "~1.6.1",
-    "nconf": "~0.8.2",
-    "request": "~2.64.0",
-    "serve-favicon": "~2.3.0"
+    "compression": "^1.8.2",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.3.0",
+    "morgan": "^1.12.1"
+  },
+  "devDependencies": {
+    "supertest": "^7.2.2"
   }
 }
