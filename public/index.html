@@ -36,7 +36,7 @@
         <label for="barcode" class="scan-label">Escanee el código de barras del libro</label>
         <div class="scan-row">
           <input id="barcode" name="barcode" class="scan-input" type="text" autocomplete="off" autocapitalize="off"
-                 autocorrect="off" spellcheck="false" maxlength="64" placeholder="Código de barras…" autofocus>
+                 autocorrect="off" spellcheck="false" maxlength="64" placeholder="Código de barras…">
           <button type="submit" class="scan-btn">Verificar</button>
         </div>
         <p class="scan-hint">El lector envía el código solo. También puede digitarlo y presionar Enter.</p>
@@ -113,6 +113,7 @@
     <form id="pinForm">
       <h2 id="pinTitle">Acceso a Yita</h2>
       <p>Ingrese el PIN de acceso de la sede.</p>
+      <input type="text" name="username" value="yita" autocomplete="username" tabindex="-1" aria-hidden="true" hidden>
       <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" aria-label="PIN" required>
       <p class="pin-error" id="pinError" role="alert" hidden></p>
       <button type="submit" id="pinSubmit">Ingresar</button>

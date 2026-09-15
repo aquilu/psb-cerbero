@@ -271,8 +271,9 @@
     els.cover.removeAttribute('src');
     if (!isbn) return;
 
+    // Sin portada, Open Library responde un GIF de 1×1 (se descarta por tamaño) en vez de un 404
     const sources = [
-      `https://covers.openlibrary.org/b/isbn/${encodeURIComponent(isbn)}-M.jpg?default=false`,
+      `https://covers.openlibrary.org/b/isbn/${encodeURIComponent(isbn)}-M.jpg`,
       `https://books.google.com/books/content?vid=ISBN${encodeURIComponent(isbn)}&printsec=frontcover&img=1&zoom=1`,
     ];
     const attempt = (index) => {

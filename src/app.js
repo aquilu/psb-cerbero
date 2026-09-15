@@ -47,8 +47,22 @@ function createApp({ config, gate, logger = console, logRequests = true }) {
           'upgrade-insecure-requests': null,
         },
       },
+      // COOP y HSTS solo tienen efecto sobre HTTPS: en HTTP (red interna) el navegador los
+      // ignora y llena la consola de advertencias. Se envían más abajo solo en HTTPS.
+      crossOriginOpenerPolicy: false,
+      strictTransportSecurity: false,
+      // Origin-Agent-Cluster es solo una sugerencia; en una IP con otras apps (otros puertos)
+      // el navegador no puede aplicarla y genera advertencias.
+      originAgentCluster: false,
     }),
   );
+  app.use((req, res, next) => {
+    if (req.secure) {
+      res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+      res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
+    next();
+  });
   app.use(compression());
 
   if (logRequests) {

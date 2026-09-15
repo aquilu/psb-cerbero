@@ -61,6 +61,20 @@ describe('app', () => {
     assert.equal(res.headers['x-powered-by'], undefined);
   });
 
+  it('COOP y HSTS solo se envían sobre HTTPS, sin Origin-Agent-Cluster', async () => {
+    const app = buildApp();
+
+    const http = await request(app).get('/').expect(200);
+    assert.equal(http.headers['cross-origin-opener-policy'], undefined);
+    assert.equal(http.headers['strict-transport-security'], undefined);
+    assert.equal(http.headers['origin-agent-cluster'], undefined);
+
+    // Azure App Service termina TLS y reenvía X-Forwarded-Proto
+    const https = await request(app).get('/').set('X-Forwarded-Proto', 'https').expect(200);
+    assert.equal(https.headers['cross-origin-opener-policy'], 'same-origin');
+    assert.match(https.headers['strict-transport-security'], /max-age=31536000/);
+  });
+
   it('GET /api/items/:barcode devuelve el veredicto sin caché', async () => {
     const app = buildApp();
 
