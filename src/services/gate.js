@@ -24,7 +24,26 @@ const MESSAGES = {
   [VERDICTS.ERROR_ALMA]: 'No fue posible consultar Alma. Verifique el préstamo manualmente.',
 };
 
-const BARCODE_RE = /^[\p{L}\p{N}][\p{L}\p{N} ._/-]{0,63}$/u;
+// Alma devuelve estas descripciones en inglés
+const BASE_STATUS_LABELS = { 1: 'En estantería', 0: 'Fuera de estantería' };
+const PROCESS_LABELS = {
+  LOAN: 'Prestado',
+  TRANSIT: 'En tránsito',
+  TRANSIT_TO_REMOTE_STORAGE: 'En tránsito a depósito remoto',
+  HOLDSHELF: 'En estante de reservas',
+  REQUESTED: 'Solicitado',
+  MISSING: 'No localizado',
+  LOST_LOAN: 'Perdido',
+  LOST_LOAN_AND_PAID: 'Perdido y pagado',
+  CLAIMED_RETURNED_LOAN: 'Reclamado como devuelto',
+  TECHNICAL: 'En proceso técnico',
+  ACQ: 'En adquisición',
+  WORK_ORDER_DEPARTMENT: 'En orden de trabajo',
+  BINDERY: 'En encuadernación',
+  ILL: 'En préstamo interbibliotecario',
+};
+
+const BARCODE_RE =/^[\p{L}\p{N}][\p{L}\p{N} ._/-]{0,63}$/u;
 // Cuánto tiempo se recuerda que la API key no tiene permiso de Usuarios, para no repetir la llamada.
 const USERS_DENIED_TTL_MS = 10 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -101,9 +120,12 @@ function describeItem(item) {
     library: data.library?.desc || null,
     location: data.location?.desc || null,
     materialType: data.physical_material_type?.desc || null,
-    status: data.base_status?.desc || null,
+    status: BASE_STATUS_LABELS[data.base_status?.value] || data.base_status?.desc || null,
     process: data.process_type?.value
-      ? { code: data.process_type.value, desc: data.process_type.desc || data.process_type.value }
+      ? {
+          code: data.process_type.value,
+          desc: PROCESS_LABELS[data.process_type.value] || data.process_type.desc || data.process_type.value,
+        }
       : null,
   };
 }

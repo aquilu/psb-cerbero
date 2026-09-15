@@ -107,7 +107,8 @@ describe('gate.checkItem', () => {
 
     assert.equal(result.verdict, VERDICTS.EN_PROCESO);
     assert.equal(result.allowed, false);
-    assert.match(result.message, /TRANSIT/);
+    assert.match(result.message, /En tránsito/);
+    assert.equal(result.item.process.code, 'TRANSIT');
   });
 
   it('EN_PROCESO: Alma marca LOAN pero no hay préstamo activo', async () => {
