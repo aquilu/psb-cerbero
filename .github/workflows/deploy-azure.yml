@@ -1,0 +1,92 @@
+# Despliegue en Azure App Service (Linux, Node 24 LTS).
+# Se ejecuta al publicar un Release en GitHub o manualmente desde la pestaña Actions.
+# Configuración necesaria (ver docs/DEPLOY-AZURE.md):
+#   Secrets:   AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID  (login OIDC, sin contraseñas)
+#   Variables: AZURE_WEBAPP_NAME
+#   Environment "production" (opcional: exigir aprobación antes de desplegar)
+name: Desplegar en Azure
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-azure
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Pruebas y paquete
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+      - name: Auditoría de dependencias de producción
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Instalar solo dependencias de producción
+        run: npm ci --omit=dev
+
+      # Se despliega con node_modules incluido: en Azure no se compila nada (SCM_DO_BUILD_DURING_DEPLOYMENT=false)
+      - name: Empaquetar
+        run: zip -r -q yita.zip package.json package-lock.json LICENSE src public node_modules
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: yita
+          path: yita.zip
+          retention-days: 7
+          if-no-files-found: error
+
+  deploy:
+    name: Desplegar
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.webapp-url }}
+    permissions:
+      contents: read
+      id-token: write # login OIDC en Azure
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: yita
+
+      - name: Iniciar sesión en Azure (OIDC)
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Desplegar paquete
+        id: deploy
+        uses: azure/webapps-deploy@02a81bead70021f5284939794bcec79c271ab383 # v3.0.8
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+          package: yita.zip
+
+      - name: Verificar que la aplicación responde
+        env:
+          WEBAPP_URL: ${{ steps.deploy.outputs.webapp-url }}
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS "$WEBAPP_URL/healthz"; then exit 0; fi
+            sleep 10
+          done
+          echo "La aplicación no respondió en /healthz después de 5 minutos" >&2
+          exit 1
