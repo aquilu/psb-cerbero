@@ -33,6 +33,8 @@ Los veredictos verdes y ámbar se limpian solos a los 15 segundos. Con el botón
 
 ## Instalación y desarrollo local
 
+El repositorio es privado: se necesita acceso como colaborador (ver [docs/ENTREGA.md](docs/ENTREGA.md)).
+
 ```bash
 git clone https://github.com/aquilu/psb-cerbero.git
 cd psb-cerbero
@@ -82,7 +84,7 @@ La lista completa, la configuración obligatoria para producción y los riesgos 
 
 ## Despliegue en Azure App Service
 
-La guía paso a paso está en **[docs/DEPLOY-AZURE.md](docs/DEPLOY-AZURE.md)**. En resumen:
+El despliegue lo hace el equipo del Banco: su punto de partida es **[docs/ENTREGA.md](docs/ENTREGA.md)** (qué versión clonar, quién genera cada secreto y cómo verificar). La guía técnica paso a paso está en **[docs/DEPLOY-AZURE.md](docs/DEPLOY-AZURE.md)**. En resumen:
 
 1. App Service **Linux** con **Node 24 LTS**, solo HTTPS, TLS 1.2 como mínimo y comprobación de estado en `/healthz`.
 2. Secretos (`ALMA_API_KEY`, `ACCESS_PIN`, `COOKIE_SECRET`) en **Key Vault** y referenciados desde las variables de entorno.
@@ -94,8 +96,8 @@ La guía paso a paso está en **[docs/DEPLOY-AZURE.md](docs/DEPLOY-AZURE.md)**. 
 | Workflow | Cuándo corre | Qué hace |
 |---|---|---|
 | [CI](.github/workflows/ci.yml) | Cada push y Pull Request | Pruebas en Node 22 y 24, `npm audit` y revisión de dependencias en PR. |
-| [CodeQL](.github/workflows/codeql.yml) | Push a `master`, PR y semanal | Análisis estático de seguridad. |
-| [Desplegar en Azure](.github/workflows/deploy-azure.yml) | Al publicar un Release o manual | Pruebas, paquete, despliegue y verificación de `/healthz`. |
+| [CodeQL](.github/workflows/codeql.yml) | Push a `master`, PR y semanal | Análisis estático de seguridad. En un repositorio privado requiere GitHub Code Security y la variable `CODE_SCANNING_ENABLED=true`; sin ellas se omite. |
+| [Desplegar en Azure](.github/workflows/deploy-azure.yml) | Al publicar un Release o manual | Pruebas, paquete, despliegue y verificación de `/healthz`. Solo corre si existe la variable `AZURE_WEBAPP_NAME`. |
 | [Dependabot](.github/dependabot.yml) | Semanal | Pull Requests con actualizaciones de librerías y Actions. |
 
 ## Endpoints
@@ -125,6 +127,7 @@ src/
   routes/                api.js y webhooks.js
 public/                  interfaz (HTML, CSS y JS sin compilación)
 test/                    pruebas con node:test y un Alma simulado
+docs/ENTREGA.md          entrega al equipo del Banco que despliega
 docs/DEPLOY-AZURE.md     guía de despliegue
 .github/                 CI, CodeQL, despliegue y Dependabot
 ```

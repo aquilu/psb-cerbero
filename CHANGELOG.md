@@ -36,7 +36,7 @@ Reescritura completa de la aplicación, que pasa a llamarse **Yita** (antes Cerb
 - API JSON `GET /api/items/:barcode`, `GET /healthz` para Azure y acceso por PIN (`ACCESS_PIN`).
 - Timeout y un reintento ante fallas de Alma. Si Alma no responde, la pantalla pide verificación manual en lugar de mostrar un error técnico.
 - Opciones `SHOW_FULL_USER_ID` y `SHOW_COVERS`.
-- **Despliegue en Azure:** guía paso a paso ([docs/DEPLOY-AZURE.md](docs/DEPLOY-AZURE.md)) con Key Vault, restricciones de acceso y Entra ID, y workflow de GitHub Actions que despliega al publicar un Release (login OIDC).
+- **Despliegue en Azure:** guía paso a paso ([docs/DEPLOY-AZURE.md](docs/DEPLOY-AZURE.md)) con Key Vault, restricciones de acceso y Entra ID, y workflow de GitHub Actions que despliega al publicar un Release (login OIDC). [docs/ENTREGA.md](docs/ENTREGA.md) orienta al equipo del Banco que despliega: versión, secretos, pipeline y verificación.
 - **Integración continua:** pruebas en Node 22 y 24, `npm audit`, CodeQL, revisión de dependencias en PR y Dependabot. Las Actions están fijadas por SHA.
 - 50 pruebas automáticas (`npm test`) con Alma simulado, incluida la regresión de varias copias y las pruebas de seguridad.
 

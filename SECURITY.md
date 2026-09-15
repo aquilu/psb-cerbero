@@ -23,7 +23,7 @@ No abra un *issue* público. Use **Security → Report a vulnerability** en este
 | **Webhooks** | La ruta solo existe si hay `WEBHOOK_SECRET`. La firma HMAC-SHA256 se valida sobre el cuerpo crudo con comparación de tiempo constante, y el desafío se valida. |
 | **Secretos** | Los secretos viven en variables de entorno (Key Vault en Azure). `.env` está en `.gitignore` y el historial de git no contiene secretos. |
 | **Registro** | Una línea por consulta: IP, ruta, estado, veredicto y tiempo. No se registran nombres ni la API key. |
-| **Dependencias** | Pocas dependencias y mantenidas, con `package-lock.json`. `npm audit` en CI, Dependabot semanal, CodeQL (`security-extended`) y *dependency review* en cada Pull Request. Las GitHub Actions están fijadas por SHA. |
+| **Dependencias** | Pocas dependencias y mantenidas, con `package-lock.json`. `npm audit` en CI, Dependabot semanal, CodeQL (`security-extended`) y *dependency review* en cada Pull Request. En un repositorio privado, estos dos últimos requieren GitHub Code Security. Las GitHub Actions están fijadas por SHA. |
 | **Despliegue** | Login OIDC desde GitHub Actions (sin contraseñas guardadas), solo HTTPS, TLS 1.2 como mínimo, FTP y credenciales básicas deshabilitados. Ver [docs/DEPLOY-AZURE.md](docs/DEPLOY-AZURE.md). |
 
 ## Configuración obligatoria antes de producción
@@ -33,6 +33,8 @@ No abra un *issue* público. Use **Security → Report a vulnerability** en este
 - [ ] **HTTPS Only** activo, TLS 1.2 como mínimo, FTP deshabilitado y credenciales básicas de publicación (SCM/FTP) deshabilitadas.
 - [ ] **Restricciones de acceso** de App Service limitadas a las redes del Banco, o **App Service Authentication** con Entra ID.
 - [ ] API key de Alma **solo lectura** (Bibs y Users) y exclusiva de esta aplicación.
+- [ ] La API key de producción la **genera el Banco** y se carga directamente en Key Vault. Se desactivan las keys usadas en desarrollo o compartidas por otros medios.
+- [ ] Repositorio **privado**, con acceso solo para las personas del desarrollo y del despliegue.
 - [ ] Comprobación de estado apuntando a `/healthz`.
 
 ## Riesgos conocidos y decisiones

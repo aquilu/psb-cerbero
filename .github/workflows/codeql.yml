@@ -16,6 +16,9 @@ permissions:
 jobs:
   analyze:
     name: Análisis de seguridad (JavaScript)
+    # Code scanning en repositorios privados requiere GitHub Code Security. Se ejecuta en repositorios
+    # públicos (push/PR) o donde se defina la variable CODE_SCANNING_ENABLED=true (incluido el semanal).
+    if: vars.CODE_SCANNING_ENABLED == 'true' || (github.event_name != 'schedule' && github.event.repository.private == false)
     runs-on: ubuntu-latest
     permissions:
       contents: read

@@ -2,8 +2,10 @@
 
 Esta guía deja Yita en **Azure App Service (Linux, Node 24 LTS)** con la configuración de seguridad que exige [SECURITY.md](../SECURITY.md). Hay dos formas de desplegar:
 
-- **A. GitHub Actions (recomendada):** al publicar un Release en GitHub se corren las pruebas y la auditoría, y luego se despliega automáticamente.
-- **B. Manual con ZIP:** desde un equipo con Azure CLI.
+- **A. GitHub Actions:** si el repositorio desde el que se despliega tiene configurados los secretos de Azure, al publicar un Release se corren las pruebas y la auditoría, y luego se despliega automáticamente.
+- **B. Manual con ZIP:** desde un equipo con Azure CLI, o con el pipeline propio del Banco.
+
+> Si el despliegue lo hace otro equipo, empiece por [ENTREGA.md](ENTREGA.md): qué versión clonar, quién genera cada secreto y cómo verificar.
 
 Los comandos usan [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) y se pueden ejecutar en **Azure Cloud Shell** (https://shell.azure.com). Reemplace los valores de ejemplo:
 
@@ -117,9 +119,13 @@ az webapp config access-restriction add --resource-group $RG --name $APP \
 
 El workflow [`.github/workflows/deploy-azure.yml`](../.github/workflows/deploy-azure.yml) instala las dependencias, corre las pruebas y `npm audit`, empaqueta solo lo necesario, entra a Azure con **OIDC** (sin contraseñas guardadas en GitHub), despliega y verifica `/healthz`.
 
+**Requisitos:**
+- **Configuración de Azure:** el workflow solo se ejecuta si existe la variable `AZURE_WEBAPP_NAME`. Sin ella se omite, sin fallar.
+- **Environments:** en un repositorio **privado**, los *environments* de GitHub (con aprobación antes de desplegar) requieren GitHub Pro, Team o Enterprise. Con el plan gratuito use el despliegue manual (5B) o el pipeline del Banco ([ENTREGA.md](ENTREGA.md#4-desplegar)).
+
 ### Configuración inicial (una sola vez)
 
-1. **Identidad para GitHub en Entra ID**, con permiso solo sobre esta app:
+1. **Identidad para GitHub en Entra ID**, con permiso solo sobre esta app. Reemplace `<organización>/<repositorio>` por el repositorio desde el que se despliega, por ejemplo `aquilu/psb-cerbero` o la copia del Banco:
 
    ```bash
    APP_ID=$(az ad app create --display-name "yita-github-deploy" --query appId -o tsv)
@@ -128,9 +134,9 @@ El workflow [`.github/workflows/deploy-azure.yml`](../.github/workflows/deploy-a
      --scope $(az webapp show --resource-group $RG --name $APP --query id -o tsv)
 
    az ad app federated-credential create --id $APP_ID --parameters '{
-     "name": "github-psb-cerbero-production",
+     "name": "github-yita-production",
      "issuer": "https://token.actions.githubusercontent.com",
-     "subject": "repo:aquilu/psb-cerbero:environment:production",
+     "subject": "repo:<organización>/<repositorio>:environment:production",
      "audiences": ["api://AzureADTokenExchange"]
    }'
 
@@ -154,11 +160,10 @@ El avance se ve en la pestaña **Actions**. Al terminar, el job muestra la URL d
 
 ## 5B. Despliegue manual con ZIP
 
-Desde un equipo con Node 24 y Azure CLI, sobre el tag que se quiere desplegar:
+Desde un equipo con Node 24 y Azure CLI, sobre el tag que se quiere desplegar. El repositorio es privado, así que necesita acceso como colaborador y autenticarse con `gh auth login`, una llave SSH o un token:
 
 ```bash
-git clone https://github.com/aquilu/psb-cerbero.git && cd psb-cerbero
-git checkout v2.0.0
+git clone --branch v2.0.0 https://github.com/aquilu/psb-cerbero.git yita && cd yita
 npm ci && npm test && npm audit --omit=dev --audit-level=high
 npm ci --omit=dev
 zip -r yita.zip package.json package-lock.json LICENSE src public node_modules
@@ -209,5 +214,6 @@ Recuerde avisar a las sedes el PIN nuevo antes de desplegar.
 | La referencia a Key Vault aparece en rojo | La identidad administrada no tiene el rol *Key Vault Secrets User* o el nombre del secreto no coincide. |
 | «Verificación manual» en todas las lecturas | La API key no es válida, `ALMA_HOST` es de otra región o Alma no responde. Revise los registros. |
 | No aparece el nombre del usuario | La API key no tiene permiso de lectura de **Users** en el Developer Network de Ex Libris. |
-| El workflow falla en *Iniciar sesión en Azure* | La credencial federada no coincide con `repo:aquilu/psb-cerbero:environment:production`, o faltan los secretos en GitHub. |
+| El workflow falla en *Iniciar sesión en Azure* | El `subject` de la credencial federada no coincide con `repo:<organización>/<repositorio>:environment:production`, o faltan los secretos en GitHub. |
+| El workflow de despliegue aparece como omitido | Falta la variable `AZURE_WEBAPP_NAME` en el repositorio. |
 | 403 al ingresar el PIN | La página se abrió desde otro dominio o hay un proxy intermedio que cambia el `Host`. Use la URL directa de la app. |
