@@ -50,7 +50,8 @@ const USERS_DENIED_TTL_MS = 10 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function normalizeBarcode(raw) {
-  return String(raw ?? '').replace(/\p{Cc}/gu, '').trim();
+  // Quita caracteres de control e invisibles (p. ej. U+202E, U+200B) que no deben reflejarse
+  return String(raw ?? '').replace(/[\p{Cc}\p{Cf}]/gu, '').trim();
 }
 
 // Quita la puntuación final de los campos MARC ("Título /", "Autor,", "1982.").

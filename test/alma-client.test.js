@@ -11,7 +11,7 @@ const {
   AlmaUnavailableError,
 } = require('../src/alma/client');
 
-const KEY = 'l8xxCLAVEDEPRUEBA';
+const KEY = 'clave-api-de-prueba';
 
 function fakeFetch(handler) {
   const calls = [];

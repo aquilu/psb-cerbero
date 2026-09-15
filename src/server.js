@@ -12,6 +12,14 @@ if (errors.length) {
   process.exit(1);
 }
 
+if (!config.accessPin) {
+  console.warn(
+    config.isProduction
+      ? 'ALLOW_OPEN_ACCESS=true: la API no pide PIN. El acceso debe estar restringido por red o por Entra ID.'
+      : 'ACCESS_PIN no está definido: cualquier equipo con acceso a este servidor puede consultar préstamos.',
+  );
+}
+
 const alma = createAlmaClient(config.alma);
 const gate = createGateService({
   alma,

@@ -164,11 +164,11 @@ describe('gate.checkItem', () => {
     assert.equal(alma.calls.length, 0);
   });
 
-  it('limpia espacios y caracteres de control que envía el lector', async () => {
+  it('limpia espacios y caracteres de control o invisibles que envía el lector', async () => {
     const inPlace = makeItem({ barcode: '29000000000002', pid: '230000000000027486' });
     const { gate } = gateWith({ items: [inPlace] });
 
-    const result = await gate.checkItem('  29000000000002\r\n');
+    const result = await gate.checkItem('  ‮29000000000002​\r\n');
 
     assert.equal(result.verdict, VERDICTS.NO_PRESTADO);
     assert.equal(result.barcode, '29000000000002');

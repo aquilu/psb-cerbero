@@ -1,6 +1,5 @@
 'use strict';
 
-const crypto = require('node:crypto');
 const path = require('node:path');
 const compression = require('compression');
 const cookieParser = require('cookie-parser');
@@ -9,22 +8,39 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 
 const { createAccess } = require('./middleware/access');
+const { clientIp } = require('./middleware/rate-limit');
 const { createApiRouter } = require('./routes/api');
 const { createWebhooksRouter } = require('./routes/webhooks');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
-function createApp({ config, gate, logger = console, logRequests = true }) {
+// Portadas: Open Library (redirige a archive.org) y Google Books. Se desactivan con SHOW_COVERS=false.
+const COVER_HOSTS = [
+  'https://covers.openlibrary.org',
+  'https://*.archive.org',
+  'https://books.google.com',
+  'https://*.googleusercontent.com',
+];
+
+const PERMISSIONS_POLICY = 'camera=(), microphone=(), geolocation=(), payment=(), usb=()';
+
+// Mensajes genéricos: no se reenvían al cliente los mensajes internos de Express o del parser JSON
+const ERROR_MESSAGES = {
+  400: 'Solicitud inválida.',
+  401: 'No autorizado.',
+  403: 'Solicitud no permitida.',
+  404: 'No encontrado.',
+  413: 'Solicitud demasiado grande.',
+  415: 'Tipo de contenido no soportado.',
+};
+
+function createApp({ config, gate, logger = console, logRequests = true, now }) {
   const app = express();
-  const access = createAccess(config);
+  const access = createAccess({ accessPin: config.accessPin, cookieSecret: config.cookieSecret, now });
 
   app.disable('x-powered-by');
-  // Azure App Service termina TLS en su proxy frontal
-  app.set('trust proxy', 1);
-
-  app.get('/healthz', (req, res) => {
-    res.set('Cache-Control', 'no-store').json({ status: 'ok', version: config.version });
-  });
+  // Por defecto solo en Azure App Service (1 salto); en la red interna no se confía en X-Forwarded-*
+  app.set('trust proxy', config.trustProxy);
 
   app.use(
     helmet({
@@ -34,19 +50,15 @@ function createApp({ config, gate, logger = console, logRequests = true }) {
           'script-src': ["'self'"],
           'style-src': ["'self'"],
           'connect-src': ["'self'"],
-          // Portadas de Open Library (redirige a archive.org) y Google Books
-          'img-src': [
-            "'self'",
-            'data:',
-            'https://covers.openlibrary.org',
-            'https://*.archive.org',
-            'https://books.google.com',
-            'https://*.googleusercontent.com',
-          ],
+          'font-src': ["'self'"],
+          'img-src': ["'self'", ...(config.showCovers ? COVER_HOSTS : [])],
+          'form-action': ["'self'"],
+          'frame-ancestors': ["'none'"],
           // En el servidor de desarrollo se sirve por HTTP
           'upgrade-insecure-requests': null,
         },
       },
+      frameguard: { action: 'deny' },
       // COOP y HSTS solo tienen efecto sobre HTTPS: en HTTP (red interna) el navegador los
       // ignora y llena la consola de advertencias. Se envían más abajo solo en HTTPS.
       crossOriginOpenerPolicy: false,
@@ -57,26 +69,35 @@ function createApp({ config, gate, logger = console, logRequests = true }) {
     }),
   );
   app.use((req, res, next) => {
+    res.setHeader('Permissions-Policy', PERMISSIONS_POLICY);
     if (req.secure) {
       res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
       res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
     }
     next();
   });
+
+  app.get('/healthz', (req, res) => {
+    res.set('Cache-Control', 'no-store').json({ status: 'ok' });
+  });
+
   app.use(compression());
 
   if (logRequests) {
+    morgan.token('client-ip', (req) => clientIp(req));
     morgan.token('verdict', (req, res) => res.locals.verdict || '-');
     app.use(
-      morgan(':remote-addr ":method :url" :status :verdict :response-time ms', {
+      morgan(':client-ip ":method :url" :status :verdict :response-time ms', {
         skip: (req) => !req.originalUrl.startsWith('/api/') && !req.originalUrl.startsWith('/webhooks'),
       }),
     );
   }
 
-  app.use(cookieParser(config.cookieSecret || crypto.randomBytes(32).toString('hex')));
+  app.use(cookieParser());
 
-  app.use('/webhooks', createWebhooksRouter({ secret: config.webhookSecret, logger }));
+  if (config.webhookSecret) {
+    app.use('/webhooks', createWebhooksRouter({ secret: config.webhookSecret, logger }));
+  }
   app.use('/api', createApiRouter({ gate, access, config }));
 
   app.use(
@@ -94,7 +115,9 @@ function createApp({ config, gate, logger = console, logRequests = true }) {
     const status = err.status || err.statusCode || 500;
     if (status >= 500) logger.error(err);
     if (res.headersSent) return next(err);
-    res.status(status).json({ error: status >= 500 ? 'Error interno del servidor.' : err.message });
+    res
+      .status(status)
+      .json({ error: status >= 500 ? 'Error interno del servidor.' : ERROR_MESSAGES[status] || 'Solicitud inválida.' });
   });
 
   return app;

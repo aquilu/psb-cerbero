@@ -10,6 +10,8 @@ require('dotenv').config({ path: path.join(ROOT, '.env'), quiet: true });
 const pkg = require('../package.json');
 
 const DEFAULT_TIME_ZONE = 'America/Bogota';
+const MIN_PIN_LENGTH = 8;
+const MIN_COOKIE_SECRET_LENGTH = 32;
 
 // Compatibilidad con v1: config.json con ALMA_HOST, ALMA_PATH, API_KEY y WEBHOOK_SECRET.
 function readLegacyConfig() {
@@ -39,6 +41,16 @@ function isValidTimeZone(timeZone) {
   }
 }
 
+// Solo se confía en X-Forwarded-For/-Proto detrás de un proxy conocido. Azure App Service define
+// WEBSITE_SITE_NAME y termina TLS en un salto; en la red interna no hay proxy y confiar en esas
+// cabeceras permitiría falsificar la IP (saltarse los límites de intentos) y el protocolo.
+function resolveTrustProxy(value, env) {
+  if (!value) return env.WEBSITE_SITE_NAME ? 1 : false;
+  if (/^(false|0|no)$/i.test(value)) return false;
+  if (/^(true|yes|si|sí)$/i.test(value)) return 1;
+  return /^\d+$/.test(value) ? Number(value) : value;
+}
+
 function loadConfig(env = process.env, legacy = readLegacyConfig()) {
   const get = (...keys) => {
     for (const key of keys) {
@@ -51,7 +63,8 @@ function loadConfig(env = process.env, legacy = readLegacyConfig()) {
 
   return {
     version: pkg.version,
-    isProduction: env.NODE_ENV === 'production',
+    // Azure App Service no define NODE_ENV: WEBSITE_SITE_NAME también cuenta como producción
+    isProduction: env.NODE_ENV === 'production' || Boolean(env.WEBSITE_SITE_NAME),
     port: get('PORT') || '3000',
     timeZone: timeZone && isValidTimeZone(timeZone) ? timeZone : DEFAULT_TIME_ZONE,
     alma: {
@@ -63,7 +76,10 @@ function loadConfig(env = process.env, legacy = readLegacyConfig()) {
     webhookSecret: get('WEBHOOK_SECRET'),
     accessPin: get('ACCESS_PIN'),
     cookieSecret: get('COOKIE_SECRET'),
+    allowOpenAccess: toBool(get('ALLOW_OPEN_ACCESS'), false),
+    trustProxy: resolveTrustProxy(get('TRUST_PROXY'), env),
     showFullUserId: toBool(get('SHOW_FULL_USER_ID'), true),
+    showCovers: toBool(get('SHOW_COVERS'), true),
     overdueGraceDays: Math.max(0, Number.parseInt(get('OVERDUE_GRACE_DAYS'), 10) || 0),
   };
 }
@@ -76,8 +92,21 @@ function validateConfig(config) {
   } catch {
     errors.push(`ALMA_HOST no es una URL válida: ${config.alma.host}`);
   }
-  if (config.accessPin && !config.cookieSecret) {
-    errors.push('COOKIE_SECRET es obligatorio cuando ACCESS_PIN está definido.');
+  if (config.accessPin && config.accessPin.length < MIN_PIN_LENGTH) {
+    errors.push(`ACCESS_PIN debe tener al menos ${MIN_PIN_LENGTH} caracteres.`);
+  }
+  if (config.accessPin && config.cookieSecret.length < MIN_COOKIE_SECRET_LENGTH) {
+    errors.push(
+      `COOKIE_SECRET es obligatorio con ACCESS_PIN y debe tener al menos ${MIN_COOKIE_SECRET_LENGTH} caracteres ` +
+        `(genere uno con: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))").`,
+    );
+  }
+  // La API entrega nombres e identificaciones: en producción no puede quedar abierta por descuido.
+  if (config.isProduction && !config.accessPin && !config.allowOpenAccess) {
+    errors.push(
+      'En producción ACCESS_PIN es obligatorio. Si el acceso ya está restringido por red o por ' +
+        'Entra ID en Azure, defina ALLOW_OPEN_ACCESS=true.',
+    );
   }
   return errors;
 }
