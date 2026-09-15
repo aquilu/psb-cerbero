@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Cerbero · Control de salida</title>
+  <meta name="description" content="Control de salida de material de la Red de Bibliotecas del Banco de la República">
+  <meta name="theme-color" content="#0f2d52">
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img class="brand-logo" src="img/brc.svg" alt="Banco de la República · Red Cultural">
+      <span class="brand-divider" aria-hidden="true"></span>
+      <div class="brand-app">
+        <strong>Cerbero</strong>
+        <span>Control de salida de material</span>
+      </div>
+    </div>
+    <div class="topbar-tools">
+      <span class="conn" id="conn" data-state="unknown" role="status">
+        <span class="conn-dot" aria-hidden="true"></span>
+        <span id="connLabel">Conectando…</span>
+      </span>
+      <time class="clock" id="clock"></time>
+      <button type="button" class="icon-btn" id="muteBtn" aria-pressed="false"></button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="scanner" aria-label="Verificación de material">
+      <form id="scanForm" class="scan-form" autocomplete="off">
+        <label for="barcode" class="scan-label">Escanee el código de barras del libro</label>
+        <div class="scan-row">
+          <input id="barcode" name="barcode" class="scan-input" type="text" autocomplete="off" autocapitalize="off"
+                 autocorrect="off" spellcheck="false" maxlength="64" placeholder="Código de barras…" autofocus>
+          <button type="submit" class="scan-btn">Verificar</button>
+        </div>
+        <p class="scan-hint">El lector envía el código solo. También puede digitarlo y presionar Enter.</p>
+      </form>
+
+      <div id="result" class="result" data-kind="idle" aria-live="assertive" aria-atomic="true">
+        <div class="idle" id="idle">
+          <svg class="idle-icon" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true">
+            <path d="M8 18V10h8M48 10h8v8M56 46v8h-8M16 54H8v-8"/>
+            <path d="M18 22v20M24 22v20M31 22v20M36 22v20M43 22v20M47 22v20"/>
+          </svg>
+          <h2>Listo para escanear</h2>
+          <p>Pase el lector sobre el código de barras de cada libro. La pantalla le indicará si el material puede salir.</p>
+        </div>
+
+        <article class="verdict" id="verdict" hidden>
+          <header class="verdict-band">
+            <span class="verdict-icon" id="vIcon"></span>
+            <div class="verdict-text">
+              <h2 class="verdict-title" id="vTitle"></h2>
+              <p class="verdict-message" id="vMessage"></p>
+            </div>
+          </header>
+
+          <div class="verdict-body" id="vBody">
+            <section class="patron" id="patron" aria-label="Usuario del préstamo">
+              <p class="eyebrow">Prestado a</p>
+              <p class="patron-name" id="pName"></p>
+              <p class="eyebrow">Identificación</p>
+              <p class="patron-id" id="pId"></p>
+              <p class="eyebrow">Vence</p>
+              <p class="patron-due" id="pDue"></p>
+            </section>
+            <section class="book" id="book" aria-label="Ejemplar">
+              <img class="cover" id="cover" alt="" referrerpolicy="no-referrer" hidden>
+              <div class="book-main">
+                <h3 class="book-title" id="bTitle"></h3>
+                <p class="book-author" id="bAuthor"></p>
+                <dl class="facts" id="bFacts"></dl>
+              </div>
+            </section>
+          </div>
+
+          <footer class="verdict-foot">
+            <span>Código <code id="vCode"></code> · <time id="vTime"></time></span>
+            <button type="button" class="link-btn" id="newScan">Nueva lectura (Esc)</button>
+          </footer>
+          <div class="autoclear" id="autoclear" hidden><span id="autoclearBar"></span></div>
+        </article>
+      </div>
+    </section>
+
+    <aside class="history" aria-labelledby="historyTitle">
+      <div class="history-head">
+        <h2 id="historyTitle">Últimas lecturas</h2>
+        <button type="button" class="link-btn" id="clearHistory" hidden>Limpiar</button>
+      </div>
+      <ol class="history-list" id="historyList"></ol>
+      <p class="history-empty" id="historyEmpty">Aún no hay lecturas en esta sesión.</p>
+    </aside>
+  </main>
+
+  <footer class="footer">
+    <span>Red de Bibliotecas del Banco de la República · Consulte el catálogo en el
+      <a href="https://descubridor.primo.exlibrisgroup.com/discovery/search?vid=57BDLRDC_INST:57BDLRDC_INST" target="_blank" rel="noopener">Descubridor</a>
+    </span>
+    <span>Cerbero <span id="version"></span></span>
+  </footer>
+
+  <dialog class="pin" id="pinDialog" aria-labelledby="pinTitle">
+    <form id="pinForm">
+      <h2 id="pinTitle">Acceso a Cerbero</h2>
+      <p>Ingrese el PIN de acceso de la sede.</p>
+      <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" aria-label="PIN" required>
+      <p class="pin-error" id="pinError" role="alert" hidden></p>
+      <button type="submit" id="pinSubmit">Ingresar</button>
+    </form>
+  </dialog>
+
+  <noscript><p class="noscript">Esta aplicación requiere JavaScript.</p></noscript>
+</body>
+</html>

@@ -1,29 +1,99 @@
-# Ejemplo de nodo simple para las API de Alma
+# Cerbero · Control de salida de material
 
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
+Aplicación para las puertas de salida de la **Red de Bibliotecas del Banco de la República**. El personal escanea el código de barras de cada libro que sale y la pantalla dice, con color y sonido, si el material **puede salir**. La verificación se hace en tiempo real contra [Alma (Ex Libris)](https://developers.exlibrisgroup.com/alma/apis/).
 
-Introduction
-------------
-This repository provides a small simple example of using the [Alma APIs](https://developers.exlibrisgroup.com/alma/apis) in a [Node.js](https://nodejs.org/) app.
+Así se evita que alguien se lleve un libro que no está prestado o que está cargado a otra persona.
 
-About the App
--------------
-The application demonstrates the following functionality:
-* Scan in an item and return the item information (uses the configuration and BIB APIs)
+## Cómo funciona en la puerta
 
-More detailed information about this sample is available in this [blog post](https://developers.exlibrisgroup.com/blog/Using-the-Alma-APIs-with-Node). As with all demo applications, we include the following disclaimer: in an effort to increase readability and clarity, only minimal error handling has been added.
+1. Se escanea el libro. El campo del lector mantiene el foco solo, así que no hace falta hacer clic.
+2. Cerbero consulta el ejemplar y **su préstamo activo** en Alma.
+3. La pantalla muestra el veredicto:
 
-Installation Instructions
--------------------------
-On any machine with [Node.js](https://nodejs.org) and [Git](http://git-scm.com/) installed, do the following:
+| Veredicto | Color | Qué hacer |
+|---|---|---|
+| **Puede salir** | Verde | Compare el nombre o la identificación con el documento de la persona. |
+| **Puede salir (préstamo vencido)** | Ámbar | Puede salir. Recuerde al usuario renovar o devolver. |
+| **No puede salir: no prestado** | Rojo | El usuario debe pasar por el mostrador de préstamo. |
+| **No puede salir: en proceso** | Rojo | El ejemplar está en tránsito, en reserva u otro proceso. Verifique en circulación. |
+| **Código no encontrado / inválido** | Rojo | Vuelva a escanear o verifique el código. |
+| **Verificación manual** | Gris | Alma no respondió. Verifique el préstamo manualmente. |
 
-1. Clone this repository: `git clone https://github.com/jweisman/simple-node-alma-apis.git`
-2. Install dependencies: `npm install`
-3. Copy the `config-example.json` file to `config.json` and replace the placeholder values:
-  * `ALMA_HOST` and `ALMA_PATH` from the [Alma API Getting Started Guide](https://developers.exlibrisgroup.com/alma/apis)
-  * `API_KEY` from the [Ex Libris Developer Network](https://developers.exlibrisgroup.com/) dashboard
-4. Run the application: `npm start`
+Los veredictos verdes y ámbar se limpian solos a los 12 segundos. Los rojos y grises se quedan en pantalla hasta la siguiente lectura o hasta presionar `Esc`. El panel lateral guarda las últimas 20 lecturas de la sesión, solo en la memoria del navegador.
 
-License
--------
-The code for this application is made available under the [MIT license](http://opensource.org/licenses/MIT).
+## Requisitos
+
+- Node.js 22 o superior (recomendado: 24 LTS)
+- Una API key de Alma con permiso de **lectura de Bibs**. Si además tiene lectura de **Users**, se muestra el nombre del usuario; si no, solo su identificación.
+
+## Instalación y desarrollo local
+
+```bash
+git clone https://github.com/aquilu/psb-cerbero.git
+cd psb-cerbero
+npm ci
+cp .env.example .env   # y complete ALMA_API_KEY
+npm run dev            # http://localhost:3000 (se reinicia al cambiar el código)
+npm test               # pruebas automáticas (no consultan Alma)
+```
+
+## Variables de entorno
+
+| Variable | Obligatoria | Descripción |
+|---|---|---|
+| `ALMA_API_KEY` | Sí | API key de Alma. `API_KEY` también se acepta por compatibilidad con v1. |
+| `ALMA_HOST` | No | Por defecto `https://api-na.hosted.exlibrisgroup.com` |
+| `ALMA_PATH` | No | Por defecto `/almaws/v1` |
+| `ALMA_TIMEOUT_MS` | No | Tiempo máximo por consulta a Alma. Por defecto `8000`. |
+| `PORT` | No | Por defecto `3000`. Azure lo define automáticamente. |
+| `TZ` | No | Zona horaria para los vencimientos. Por defecto `America/Bogota`. |
+| `SHOW_FULL_USER_ID` | No | `true` (por defecto) muestra la identificación completa y `false` solo los últimos 4 dígitos. |
+| `ACCESS_PIN` | No | Si se define, la pantalla pide este PIN antes de consultar. Recomendado si la app es accesible desde internet. |
+| `COOKIE_SECRET` | Si hay `ACCESS_PIN` | Secreto largo y aleatorio para firmar la cookie de acceso. |
+| `WEBHOOK_SECRET` | No | Secreto para validar los webhooks de Alma. Si está vacío, `/webhooks` responde 503. |
+
+El archivo `.env` contiene secretos y está en `.gitignore`: **nunca debe subirse al repositorio**.
+
+## Despliegue en Azure App Service
+
+1. Cree o use un App Service **Linux** con la pila **Node 24 LTS**.
+2. En *Configuración → Variables de entorno*, defina `ALMA_API_KEY` y, si aplica, `ACCESS_PIN`, `COOKIE_SECRET` y `NODE_ENV=production`.
+3. El comando de inicio es `npm start`. Azure lo detecta desde `package.json`.
+4. En *Supervisión → Comprobación de estado*, use la ruta `/healthz`.
+5. Despliegue desde GitHub (Deployment Center) o con `az webapp up`.
+
+## Endpoints
+
+| Método y ruta | Descripción |
+|---|---|
+| `GET /` | Pantalla de la puerta |
+| `GET /api/items/:barcode` | Veredicto en JSON para un código de barras |
+| `GET /api/status` | Versión y estado del acceso por PIN |
+| `POST /api/access` | Valida el PIN (`{ "pin": "..." }`) |
+| `GET /healthz` | Comprobación de estado (no consulta Alma) |
+| `GET, POST /webhooks` | Webhooks de Alma (firma HMAC en `X-Exl-Signature`) |
+
+## Estructura
+
+```
+src/
+  server.js            arranque y apagado ordenado
+  app.js               Express: seguridad, rutas y errores
+  config.js            variables de entorno y validación
+  alma/client.js       cliente HTTP de Alma (timeout, reintento, errores tipificados)
+  services/gate.js     lógica del veredicto de salida
+  middleware/access.js acceso opcional por PIN
+  routes/              api.js y webhooks.js
+public/                interfaz (HTML, CSS y JS sin compilación)
+test/                  pruebas con node:test y un Alma simulado
+```
+
+## Privacidad
+
+- La API key solo viaja en el header `Authorization`. Nunca va en URLs ni en los logs.
+- Los logs registran el código de barras y el veredicto, nunca nombres de usuarios.
+- El historial de lecturas vive en la memoria del navegador y se borra al recargar la página.
+
+## Licencia
+
+[MIT](LICENSE)

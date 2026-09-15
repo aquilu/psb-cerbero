@@ -28,3 +28,7 @@ node_modules
 
 # Configuration
 config.json
+# Secretos / variables de entorno
+.env
+.env.*
+!.env.example
