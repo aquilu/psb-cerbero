@@ -2,7 +2,7 @@
   'use strict';
 
   const HISTORY_MAX = 20;
-  const AUTO_CLEAR_MS = 12000;
+  const AUTO_CLEAR_MS = 15000;
   const DUPLICATE_WINDOW_MS = 2000;
   const REQUEST_TIMEOUT_MS = 25000;
   const STATUS_POLL_MS = 60000;
@@ -15,6 +15,8 @@
     stop: svg('<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>'),
     warn: svg('<path d="M12 5v9"/><circle cx="12" cy="19" r="1.3" fill="currentColor" stroke="none"/>'),
     unknown: svg('<path d="M9 9a3 3 0 1 1 4.2 2.75c-.75.33-1.2 1.07-1.2 1.9V15"/><circle cx="12" cy="19" r="1.3" fill="currentColor" stroke="none"/>'),
+    pause: svg('<path d="M9 5.5v13M15 5.5v13"/>'),
+    play: svg('<path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/>'),
     soundOn: svg('<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>', ' stroke-width="2"'),
     soundOff: svg('<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M16 10l5 5M21 10l-5 5"/>', ' stroke-width="2"'),
   };
@@ -22,7 +24,7 @@
   const VIEWS = {
     LOADING: { kind: 'loading', title: 'Consultando…' },
     PRESTADO: { kind: 'ok', icon: 'ok', title: 'Puede salir', label: 'Puede salir' },
-    PRESTADO_VENCIDO: { kind: 'warn', icon: 'warn', title: 'Puede salir', label: 'Puede salir (vencido)' },
+    PRESTADO_VENCIDO: { kind: 'warn', icon: 'warn', title: 'Requiere autorización', label: 'Vencido: requiere autorización' },
     NO_PRESTADO: { kind: 'stop', icon: 'stop', title: 'No puede salir', label: 'No prestado' },
     EN_PROCESO: { kind: 'stop', icon: 'stop', title: 'No puede salir', label: 'En proceso' },
     NO_ENCONTRADO: { kind: 'stop', icon: 'unknown', title: 'Código no encontrado', label: 'No encontrado' },
@@ -53,7 +55,7 @@
     vIcon: $('vIcon'), vTitle: $('vTitle'), vMessage: $('vMessage'), vBody: $('vBody'),
     patron: $('patron'), pName: $('pName'), pId: $('pId'), pDue: $('pDue'),
     book: $('book'), cover: $('cover'), bTitle: $('bTitle'), bAuthor: $('bAuthor'), bFacts: $('bFacts'),
-    vCode: $('vCode'), vTime: $('vTime'), newScan: $('newScan'),
+    vCode: $('vCode'), vTime: $('vTime'), newScan: $('newScan'), pauseBtn: $('pauseBtn'),
     autoclear: $('autoclear'), autoclearBar: $('autoclearBar'),
     historyList: $('historyList'), historyEmpty: $('historyEmpty'), clearHistory: $('clearHistory'),
     version: $('version'),
@@ -70,7 +72,7 @@
   };
 
   const state = {
-    muted: storage.get('cerbero.muted') === '1',
+    muted: storage.get('yita.muted') === '1',
     history: [],
     seq: 0,
     coverSeq: 0,
@@ -78,6 +80,9 @@
     lastAt: 0,
     pendingCode: null,
     clearTimer: null,
+    clearRemaining: 0,
+    clearStartedAt: 0,
+    paused: false,
     audio: null,
   };
 
@@ -220,15 +225,14 @@
     els.vBody.hidden = !loan && !item;
     els.vBody.classList.toggle('single', !loan || !item);
 
-    if (view.kind === 'stop') {
-      els.result.classList.remove('alert');
+    els.result.classList.remove('alert');
+    if (view.kind === 'stop' || view.kind === 'warn') {
       void els.result.offsetWidth; // reinicia la animación
       els.result.classList.add('alert');
-    } else {
-      els.result.classList.remove('alert');
     }
 
-    if (view.kind === 'ok' || view.kind === 'warn') startAutoClear();
+    // Solo el verde se limpia solo: los demás veredictos requieren atención del personal
+    if (view.kind === 'ok') startAutoClear();
     focusInput();
   }
 
@@ -291,20 +295,55 @@
   }
 
   function startAutoClear() {
-    const bar = els.autoclearBar;
+    state.paused = false;
+    state.clearRemaining = AUTO_CLEAR_MS;
     els.autoclear.hidden = false;
+    els.pauseBtn.hidden = false;
+    renderPause();
+    runAutoClear();
+  }
+
+  function runAutoClear() {
+    const bar = els.autoclearBar;
     bar.style.transition = 'none';
-    bar.style.transform = 'scaleX(1)';
+    bar.style.transform = `scaleX(${state.clearRemaining / AUTO_CLEAR_MS})`;
     void bar.offsetWidth;
-    bar.style.transition = `transform ${AUTO_CLEAR_MS}ms linear`;
+    bar.style.transition = `transform ${state.clearRemaining}ms linear`;
     bar.style.transform = 'scaleX(0)';
-    state.clearTimer = setTimeout(resetToIdle, AUTO_CLEAR_MS);
+    state.clearStartedAt = performance.now();
+    state.clearTimer = setTimeout(resetToIdle, state.clearRemaining);
+  }
+
+  // Pausa la limpieza automática para revisar con calma los datos del libro que va a salir
+  function togglePause() {
+    if (state.paused) {
+      state.paused = false;
+      runAutoClear();
+    } else if (state.clearTimer) {
+      clearTimeout(state.clearTimer);
+      state.clearTimer = null;
+      state.clearRemaining = Math.max(0, state.clearRemaining - (performance.now() - state.clearStartedAt));
+      state.paused = true;
+      els.autoclearBar.style.transition = 'none';
+      els.autoclearBar.style.transform = `scaleX(${state.clearRemaining / AUTO_CLEAR_MS})`;
+    }
+    renderPause();
+    focusInput();
+  }
+
+  function renderPause() {
+    els.pauseBtn.innerHTML = state.paused ? ICONS.play : ICONS.pause;
+    els.pauseBtn.append(state.paused ? 'Continuar' : 'Pausar');
+    els.pauseBtn.setAttribute('aria-pressed', String(state.paused));
+    els.pauseBtn.title = state.paused ? 'Continuar la limpieza automática' : 'Mantener este resultado en pantalla';
   }
 
   function stopAutoClear() {
     clearTimeout(state.clearTimer);
     state.clearTimer = null;
+    state.paused = false;
     els.autoclear.hidden = true;
+    els.pauseBtn.hidden = true;
   }
 
   function resetToIdle() {
@@ -354,7 +393,7 @@
 
   const SOUND_PATTERNS = {
     ok: [[880, 0, 0.12], [1318.5, 0.13, 0.2]],
-    warn: [[740, 0, 0.15], [740, 0.22, 0.15]],
+    warn: [[622, 0, 0.18, 'square'], [622, 0.26, 0.18, 'square'], [880, 0.52, 0.3, 'square']],
     stop: [[196, 0, 0.22, 'square'], [196, 0.3, 0.22, 'square'], [196, 0.6, 0.4, 'square']],
     unknown: [[523, 0, 0.18, 'triangle'], [392, 0.22, 0.3, 'triangle']],
   };
@@ -464,6 +503,7 @@
 
   els.form.addEventListener('submit', onSubmit);
   els.newScan.addEventListener('click', resetToIdle);
+  els.pauseBtn.addEventListener('click', togglePause);
   els.clearHistory.addEventListener('click', () => {
     state.history = [];
     renderHistory();
@@ -471,7 +511,7 @@
   });
   els.muteBtn.addEventListener('click', () => {
     state.muted = !state.muted;
-    storage.set('cerbero.muted', state.muted ? '1' : '0');
+    storage.set('yita.muted', state.muted ? '1' : '0');
     renderMute();
     if (!state.muted) playSound('ok');
     focusInput();

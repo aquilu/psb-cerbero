@@ -64,6 +64,7 @@ function loadConfig(env = process.env, legacy = readLegacyConfig()) {
     accessPin: get('ACCESS_PIN'),
     cookieSecret: get('COOKIE_SECRET'),
     showFullUserId: toBool(get('SHOW_FULL_USER_ID'), true),
+    overdueGraceDays: Math.max(0, Number.parseInt(get('OVERDUE_GRACE_DAYS'), 10) || 0),
   };
 }
 

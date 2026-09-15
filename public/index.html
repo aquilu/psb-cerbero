@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Cerbero · Control de salida</title>
+  <title>Yita · Control de salida</title>
   <meta name="description" content="Control de salida de material de la Red de Bibliotecas del Banco de la República">
   <meta name="theme-color" content="#0f2d52">
   <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
@@ -16,7 +16,7 @@
       <img class="brand-logo" src="img/brc.svg" alt="Banco de la República · Red Cultural">
       <span class="brand-divider" aria-hidden="true"></span>
       <div class="brand-app">
-        <strong>Cerbero</strong>
+        <strong>Yita</strong>
         <span>Control de salida de material</span>
       </div>
     </div>
@@ -82,7 +82,10 @@
 
           <footer class="verdict-foot">
             <span>Código <code id="vCode"></code> · <time id="vTime"></time></span>
-            <button type="button" class="link-btn" id="newScan">Nueva lectura (Esc)</button>
+            <div class="foot-actions">
+              <button type="button" class="pause-btn" id="pauseBtn" aria-pressed="false" hidden></button>
+              <button type="button" class="link-btn" id="newScan">Nueva lectura (Esc)</button>
+            </div>
           </footer>
           <div class="autoclear" id="autoclear" hidden><span id="autoclearBar"></span></div>
         </article>
@@ -103,12 +106,12 @@
     <span>Red de Bibliotecas del Banco de la República · Consulte el catálogo en el
       <a href="https://descubridor.primo.exlibrisgroup.com/discovery/search?vid=57BDLRDC_INST:57BDLRDC_INST" target="_blank" rel="noopener">Descubridor</a>
     </span>
-    <span>Cerbero <span id="version"></span></span>
+    <span>Yita <span id="version"></span></span>
   </footer>
 
   <dialog class="pin" id="pinDialog" aria-labelledby="pinTitle">
     <form id="pinForm">
-      <h2 id="pinTitle">Acceso a Cerbero</h2>
+      <h2 id="pinTitle">Acceso a Yita</h2>
       <p>Ingrese el PIN de acceso de la sede.</p>
       <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" aria-label="PIN" required>
       <p class="pin-error" id="pinError" role="alert" hidden></p>

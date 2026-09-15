@@ -38,7 +38,7 @@ describe('gate.checkItem', () => {
     assert.equal(result.item.year, '1982');
   });
 
-  it('PRESTADO_VENCIDO: puede salir pero con aviso', async () => {
+  it('PRESTADO_VENCIDO: no autoriza la salida y pide un representante de la biblioteca', async () => {
     const { gate } = gateWith({
       items: [onLoan],
       loans: [{ itemPid: onLoan.item_data.pid, loan: makeLoan({ item: onLoan, dueDate: '2025-06-17T00:00:00.000Z' }) }],
@@ -47,8 +47,33 @@ describe('gate.checkItem', () => {
     const result = await gate.checkItem('29000000000001');
 
     assert.equal(result.verdict, VERDICTS.PRESTADO_VENCIDO);
-    assert.equal(result.allowed, true);
+    assert.equal(result.allowed, false);
     assert.equal(result.loan.dueDate.daysOverdue, 455);
+    assert.match(result.message, /hace 455 días/);
+    assert.match(result.message, /representante de la biblioteca/);
+  });
+
+  it('OVERDUE_GRACE_DAYS: un vencido dentro del margen puede salir, fuera del margen no', async () => {
+    const recent = makeItem({ barcode: '29000000000040', pid: '230000000000407486', base: '0', process: 'LOAN' });
+    const { gate } = gateWith(
+      {
+        items: [onLoan, recent],
+        loans: [
+          { itemPid: recent.item_data.pid, loan: makeLoan({ item: recent, dueDate: '2026-09-05T00:00:00.000Z' }) },
+          { itemPid: onLoan.item_data.pid, loan: makeLoan({ item: onLoan, dueDate: '2025-06-17T00:00:00.000Z' }) },
+        ],
+      },
+      { overdueGraceDays: 30 },
+    );
+
+    const inGrace = await gate.checkItem('29000000000040');
+    const tooLate = await gate.checkItem('29000000000001');
+
+    assert.equal(inGrace.verdict, VERDICTS.PRESTADO);
+    assert.equal(inGrace.allowed, true);
+    assert.match(inGrace.message, /hace 10 días, dentro del margen de 30 días/);
+    assert.equal(tooLate.verdict, VERDICTS.PRESTADO_VENCIDO);
+    assert.equal(tooLate.allowed, false);
   });
 
   it('NO_PRESTADO: ejemplar en estantería sin préstamo', async () => {

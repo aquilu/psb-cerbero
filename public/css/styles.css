@@ -213,6 +213,11 @@ img { max-width: 100%; }
 .result[data-kind="stop"] .verdict-band { background: var(--stop); }
 
 .result.alert { animation: alert-ring 900ms ease-out 3; }
+.result[data-kind="warn"].alert { animation-name: alert-ring-warn; }
+@keyframes alert-ring-warn {
+  from { box-shadow: 0 0 0 0 rgb(240 160 32 / 70%), var(--shadow); }
+  to { box-shadow: 0 0 0 24px rgb(240 160 32 / 0%), var(--shadow); }
+}
 @keyframes alert-ring {
   from { box-shadow: 0 0 0 0 rgb(180 35 24 / 60%), var(--shadow); }
   to { box-shadow: 0 0 0 24px rgb(180 35 24 / 0%), var(--shadow); }
@@ -285,6 +290,24 @@ img { max-width: 100%; }
   font-size: .88rem;
 }
 .verdict-foot code { font-family: var(--mono); font-weight: 600; color: var(--ink-2); }
+.foot-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+
+.pause-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+}
+.pause-btn:hover { background: var(--bg); }
+.pause-btn svg { width: 18px; height: 18px; }
+.pause-btn[aria-pressed="true"] { border-color: var(--brand); background: var(--brand); color: #fff; }
 
 .link-btn {
   padding: 4px 6px;
