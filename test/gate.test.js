@@ -199,6 +199,28 @@ describe('gate.checkItem', () => {
     assert.equal(alma.calls.filter((call) => call.endpoint.startsWith('/users/')).length, 1);
   });
 
+  it('arma el nombre sin repetir el segundo nombre que Alma duplica', async () => {
+    const second = makeItem({ barcode: '29000000000050', pid: '230000000000507486', base: '0', process: 'LOAN' });
+    const third = makeItem({ barcode: '29000000000051', pid: '230000000000517486', base: '0', process: 'LOAN' });
+    const { gate } = gateWith({
+      items: [onLoan, second, third],
+      loans: [
+        { itemPid: onLoan.item_data.pid, loan: makeLoan({ item: onLoan, userId: 'U1' }) },
+        { itemPid: second.item_data.pid, loan: makeLoan({ item: second, userId: 'U2' }) },
+        { itemPid: third.item_data.pid, loan: makeLoan({ item: third, userId: 'U3' }) },
+      ],
+      users: {
+        U1: { first_name: 'ANA LUCÍA ', middle_name: 'LUCÍA', last_name: 'PÉREZ  RUIZ ', full_name: 'ANA LUCÍA  LUCÍA PÉREZ  RUIZ' },
+        U2: { first_name: 'Ana', middle_name: 'María', last_name: 'Pérez', full_name: 'Ana María Pérez' },
+        U3: { full_name: 'Nombre Solo En Full Name' },
+      },
+    });
+
+    assert.equal((await gate.checkItem('29000000000001')).loan.userName, 'ANA LUCÍA PÉREZ RUIZ');
+    assert.equal((await gate.checkItem('29000000000050')).loan.userName, 'Ana María Pérez');
+    assert.equal((await gate.checkItem('29000000000051')).loan.userName, 'Nombre Solo En Full Name');
+  });
+
   it('SHOW_FULL_USER_ID=false enmascara la identificación', async () => {
     const { gate } = gateWith(
       { items: [onLoan], loans: [{ itemPid: onLoan.item_data.pid, loan: makeLoan({ item: onLoan }) }] },

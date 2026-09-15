@@ -64,6 +64,21 @@ function firstIsbn(value) {
   return match ? match[1].toUpperCase() : null;
 }
 
+// En Alma a veces first_name ya incluye el segundo nombre y middle_name lo repite
+// ("LUZ ELENA" + "ELENA"), por eso full_name sale duplicado. Se arma el nombre sin repetir.
+function patronName(user) {
+  const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
+  const first = clean(user.first_name);
+  const middle = clean(user.middle_name);
+  const last = clean(user.last_name);
+  if (!first && !last) return clean(user.full_name) || null;
+
+  const words = (value) => value.toLocaleLowerCase('es').split(' ');
+  const firstWords = words(first);
+  const middleIsRepeated = middle && words(middle).every((word) => firstWords.includes(word));
+  return [first, middleIsRepeated ? '' : middle, last].filter(Boolean).join(' ');
+}
+
 function daysText(n) {
   return `${n} ${n === 1 ? 'día' : 'días'}`;
 }
@@ -168,7 +183,7 @@ function createGateService({
         expand: 'none',
       });
       return {
-        name: user.full_name || [user.first_name, user.last_name].filter(Boolean).join(' ') || null,
+        name: patronName(user),
         group: user.user_group?.desc || null,
       };
     } catch (err) {

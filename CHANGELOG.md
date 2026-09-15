@@ -15,6 +15,7 @@ Reescritura completa de la aplicación, que pasa a llamarse **Yita** (antes Cerb
 - La fecha de vencimiento se mostraba en formato ISO y se comparaba en UTC. Ahora se muestra en español y se calcula en la zona horaria de Bogotá.
 - Webhooks: la app fallaba si `WEBHOOK_SECRET` estaba vacío o si faltaba `action`, y la firma se validaba sobre el JSON re-serializado. Ahora se valida sobre el cuerpo crudo con comparación de tiempo constante.
 - La página de error mostraba el stack trace al público.
+- Nombre del usuario duplicado: en Alma, `first_name` a veces ya incluye el segundo nombre y `middle_name` lo repite (por ejemplo "LUZ ELENA ELENA ACOSTA"). Ahora se arma el nombre sin repetir.
 - En cada consulta se llamaba a `/conf/libraries` sin usar el resultado, y había código muerto de la función "scan".
 
 ### Agregado
@@ -25,7 +26,7 @@ Reescritura completa de la aplicación, que pasa a llamarse **Yita** (antes Cerb
 - Timeout y un reintento ante fallas de Alma. Si Alma no responde, la pantalla pide verificación manual en lugar de mostrar un error técnico.
 - Si la API key no tiene permiso de Usuarios, se muestra solo la identificación sin fallar.
 - Cabeceras de seguridad (helmet/CSP), límite de peticiones y compresión.
-- 39 pruebas automáticas (`npm test`) con Alma simulado, incluida la regresión de varias copias.
+- 40 pruebas automáticas (`npm test`) con Alma simulado, incluida la regresión de varias copias.
 
 ### Cambiado
 - La aplicación se llama **Yita** (antes Cerbero). El repositorio sigue siendo `psb-cerbero`.
