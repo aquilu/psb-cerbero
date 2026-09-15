@@ -1,6 +1,7 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const http = require('node:http');
 const { describe, it } = require('node:test');
 
 const {
@@ -115,18 +116,23 @@ describe('alma client', () => {
     assert.equal(fetchImpl.calls.length, 1);
   });
 
-  it('corta por timeout y reporta AlmaUnavailableError', async () => {
-    const fetchImpl = fakeFetch(
-      (url, init) =>
-        new Promise((resolve, reject) => {
-          init.signal.addEventListener('abort', () => reject(init.signal.reason));
-        }),
-    );
+  it('corta por timeout ante un servidor que no responde y reporta AlmaUnavailableError', async () => {
+    // Servidor real que acepta la conexión y nunca responde. Con un fetch simulado, en Node 22
+    // nada mantiene vivo el event loop mientras corre el timeout y el runner cancela la prueba.
+    const server = http.createServer(() => {});
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address();
 
-    await assert.rejects(client(fetchImpl, { timeoutMs: 20, retries: 0 }).get('/items'), (err) => {
-      assert.ok(err instanceof AlmaUnavailableError);
-      assert.match(err.message, /no respondió en 20 ms/);
-      return true;
-    });
+    try {
+      const alma = createAlmaClient({ host: `http://127.0.0.1:${port}`, apiKey: KEY, timeoutMs: 50, retries: 0 });
+      await assert.rejects(alma.get('/items', { item_barcode: '123' }), (err) => {
+        assert.ok(err instanceof AlmaUnavailableError);
+        assert.match(err.message, /no respondió en 50 ms/);
+        return true;
+      });
+    } finally {
+      server.closeAllConnections();
+      await new Promise((resolve) => server.close(resolve));
+    }
   });
 });
