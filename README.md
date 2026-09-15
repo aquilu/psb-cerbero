@@ -21,7 +21,7 @@ Así se evita que alguien se lleve un libro que no está prestado o que está ca
 | **Código no encontrado / inválido** | Rojo | Vuelva a escanear o verifique el código. |
 | **Verificación manual** | Gris | Alma no respondió. Verifique el préstamo manualmente. |
 
-Los veredictos verdes se limpian solos a los 15 segundos. Con el botón **Pausar**, el resultado se queda en pantalla para revisar con calma los datos del libro. Los ámbar, rojos y grises se quedan en pantalla hasta la siguiente lectura o hasta presionar `Esc`. El panel lateral guarda las últimas 20 lecturas de la sesión, solo en la memoria del navegador.
+Los veredictos verdes y ámbar se limpian solos a los 15 segundos. Con el botón **Pausar**, el resultado se queda en pantalla para revisar con calma los datos del libro, y **Continuar** reanuda la cuenta regresiva. Los rojos y grises se quedan en pantalla hasta la siguiente lectura o hasta presionar `Esc`. El panel lateral guarda las últimas 20 lecturas de la sesión, solo en la memoria del navegador.
 
 ## Requisitos
 

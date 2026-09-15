@@ -25,8 +25,8 @@ Reescritura completa de la aplicación, que pasa a llamarse **Yita** (antes Cerb
 - API JSON `GET /api/items/:barcode`, `GET /healthz` para Azure y acceso opcional por PIN (`ACCESS_PIN`).
 - Timeout y un reintento ante fallas de Alma. Si Alma no responde, la pantalla pide verificación manual en lugar de mostrar un error técnico.
 - Si la API key no tiene permiso de Usuarios, se muestra solo la identificación sin fallar.
-- Cabeceras de seguridad (helmet/CSP), límite de peticiones y compresión.
-- 40 pruebas automáticas (`npm test`) con Alma simulado, incluida la regresión de varias copias.
+- Cabeceras de seguridad (helmet/CSP), límite de peticiones y compresión. `Cross-Origin-Opener-Policy` y `Strict-Transport-Security` solo se envían sobre HTTPS, así se evitan advertencias en la consola del navegador cuando se usa por HTTP en la red interna.
+- 41 pruebas automáticas (`npm test`) con Alma simulado, incluida la regresión de varias copias.
 
 ### Cambiado
 - La aplicación se llama **Yita** (antes Cerbero). El repositorio sigue siendo `psb-cerbero`.
